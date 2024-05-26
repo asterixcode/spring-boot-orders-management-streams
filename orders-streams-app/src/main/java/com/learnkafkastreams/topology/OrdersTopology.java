@@ -213,7 +213,7 @@ public class OrdersTopology {
             .aggregate(totalRevenueInitializer, revenueAggregator,
                     Materialized.<String, TotalRevenue, WindowStore<Bytes, byte[]>>as(storeName)
                             .withKeySerde(Serdes.String())
-                            .withValueSerde(new JsonSerde<TotalRevenue>(TotalRevenue.class))
+                            .withValueSerde(new JsonSerde<>(TotalRevenue.class))
             );
 
     revenueTable
