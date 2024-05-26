@@ -38,4 +38,17 @@ public class OrderService {
       default -> throw new IllegalArgumentException("Not a valid order type");
     };
   }
+
+  public OrderCountPerStoreDTO getOrdersCountByLocation(String orderType, String locationId) {
+    var ordersCountStore = gerOrderStore(orderType);
+
+    var orderCount = ordersCountStore.get(locationId);
+
+    if (orderCount != null) {
+      return new OrderCountPerStoreDTO(locationId, orderCount);
+    }
+
+    log.warn("No orders found for locationId: {}", locationId);
+    return null;
+  }
 }

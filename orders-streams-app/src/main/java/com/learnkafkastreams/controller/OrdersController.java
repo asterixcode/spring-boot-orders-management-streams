@@ -1,12 +1,9 @@
 package com.learnkafkastreams.controller;
 
-import com.learnkafkastreams.domain.OrderCountPerStoreDTO;
 import com.learnkafkastreams.service.OrderService;
-import java.util.List;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/orders")
@@ -19,9 +16,14 @@ public class OrdersController {
   }
 
   @GetMapping("/count/{order_type}")
-  public List<OrderCountPerStoreDTO> getOrderCountByType(
-      @PathVariable("order_type") String orderType) {
+  public ResponseEntity<?> getOrderCountByType(
+          @PathVariable("order_type") String orderType,
+          @RequestParam(value = "location_id", required = false) String locationId) {
 
-    return orderService.getOrdersCount(orderType);
+    if (StringUtils.hasLength(locationId)) {
+      return ResponseEntity.ok(orderService.getOrdersCountByLocation(orderType, locationId));
+    }
+
+    return ResponseEntity.ok(orderService.getOrdersCount(orderType));
   }
 }
