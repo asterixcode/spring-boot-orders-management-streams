@@ -2,9 +2,7 @@ package com.learnkafkastreams.service;
 
 import static com.learnkafkastreams.topology.OrdersTopology.*;
 
-import com.learnkafkastreams.domain.AllOrdersCountPerStoreDTO;
-import com.learnkafkastreams.domain.OrderCountPerStoreDTO;
-import com.learnkafkastreams.domain.OrderType;
+import com.learnkafkastreams.domain.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.Spliterators;
@@ -40,7 +38,7 @@ public class OrderService {
     return switch (orderType) {
       case GENERAL_ORDERS -> orderStoreService.ordersCountStore(GENERAL_ORDERS_COUNT);
       case RESTAURANT_ORDERS -> orderStoreService.ordersCountStore(RESTAURANT_ORDERS_COUNT);
-      default -> throw new IllegalArgumentException("Not a valid order type");
+      default -> throw new IllegalStateException("Not a valid order type");
     };
   }
 
@@ -76,5 +74,32 @@ public class OrderService {
     return Stream.of(generalOrdersCount, restaurantOrdersCount)
         .flatMap(Collection::stream)
         .toList();
+  }
+
+  public List<OrderRevenueDTO> getRevenueByOrderType(String orderType) {
+    var revenueStoreByType = getRevenueStore(orderType);
+
+    var revenueIterator = revenueStoreByType.all();
+    var spliterator = Spliterators.spliteratorUnknownSize(revenueIterator, 0);
+
+    return StreamSupport.stream(spliterator, false)
+        .map(keyValue -> new OrderRevenueDTO(keyValue.key, mapOrderType(orderType), keyValue.value))
+        .toList();
+  }
+
+  private OrderType mapOrderType(String orderType) {
+    return switch (orderType) {
+      case GENERAL_ORDERS -> OrderType.GENERAL;
+      case RESTAURANT_ORDERS -> OrderType.RESTAURANT;
+      default -> throw new IllegalStateException("Not a valid order type");
+    };
+  }
+
+  private ReadOnlyKeyValueStore<String, TotalRevenue> getRevenueStore(String orderType) {
+    return switch (orderType) {
+      case GENERAL_ORDERS -> orderStoreService.ordersRevenueStore(GENERAL_ORDERS_REVENUE);
+      case RESTAURANT_ORDERS -> orderStoreService.ordersRevenueStore(RESTAURANT_ORDERS_REVENUE);
+      default -> throw new IllegalStateException("Not a valid order type");
+    };
   }
 }
