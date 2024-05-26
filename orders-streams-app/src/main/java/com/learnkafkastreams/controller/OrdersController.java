@@ -2,11 +2,10 @@ package com.learnkafkastreams.controller;
 
 import com.learnkafkastreams.domain.AllOrdersCountPerStoreDTO;
 import com.learnkafkastreams.service.OrderService;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/v1/orders")
@@ -22,18 +21,22 @@ public class OrdersController {
   public ResponseEntity<?> orderCountByType(
       @PathVariable("order_type") String orderType,
       @RequestParam(value = "location_id", required = false) String locationId) {
-
     if (StringUtils.hasLength(locationId)) {
       return ResponseEntity.ok(orderService.getOrdersCountByLocation(orderType, locationId));
+    } else {
+      return ResponseEntity.ok(orderService.getOrdersCount(orderType));
     }
-
-    return ResponseEntity.ok(orderService.getOrdersCount(orderType));
   }
 
   @GetMapping("/revenue/{order_type}")
   public ResponseEntity<?> revenueByOrderType(
-          @PathVariable("order_type") String orderType) {
-    return ResponseEntity.ok(orderService.getRevenueByOrderType(orderType));
+      @PathVariable("order_type") String orderType,
+      @RequestParam(value = "location_id", required = false) String locationId) {
+    if (StringUtils.hasLength(locationId)) {
+      return ResponseEntity.ok(orderService.getRevenueByLocationId(orderType, locationId));
+    } else {
+      return ResponseEntity.ok(orderService.getRevenueByOrderType(orderType));
+    }
   }
 
   @GetMapping("/count")

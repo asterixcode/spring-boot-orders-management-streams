@@ -78,13 +78,21 @@ public class OrderService {
 
   public List<OrderRevenueDTO> getRevenueByOrderType(String orderType) {
     var revenueStoreByType = getRevenueStore(orderType);
-
     var revenueIterator = revenueStoreByType.all();
     var spliterator = Spliterators.spliteratorUnknownSize(revenueIterator, 0);
-
     return StreamSupport.stream(spliterator, false)
         .map(keyValue -> new OrderRevenueDTO(keyValue.key, mapOrderType(orderType), keyValue.value))
         .toList();
+  }
+
+  public OrderRevenueDTO getRevenueByLocationId(String orderType, String locationId) {
+    var revenueStoreByType = getRevenueStore(orderType);
+    var revenue = revenueStoreByType.get(locationId);
+    if (revenue != null) {
+      return new OrderRevenueDTO(locationId, mapOrderType(orderType), revenue);
+    }
+    log.warn("No revenue found for locationId: {}", locationId);
+    return null;
   }
 
   private OrderType mapOrderType(String orderType) {
