@@ -19,4 +19,9 @@ public class OrdersWindowsController {
   public List<OrdersCountPerStoreByWindowsDTO> orderCountByType(@PathVariable("order_type") String orderType) {
     return ordersWindowService.getOrdersCountWindowsByType(orderType);
   }
+
+  @GetMapping("/windows/count")
+  public List<OrdersCountPerStoreByWindowsDTO> getAllOrdersCountByWindows() {
+    return ordersWindowService.getAllOrdersCountByWindows();
+  }
 }
