@@ -2,9 +2,14 @@ package com.learnkafkastreams.service;
 
 import static com.learnkafkastreams.topology.OrdersTopology.*;
 
+import com.learnkafkastreams.domain.AllOrdersCountPerStoreDTO;
 import com.learnkafkastreams.domain.OrderCountPerStoreDTO;
+import com.learnkafkastreams.domain.OrderType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Spliterators;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
@@ -50,5 +55,26 @@ public class OrderService {
 
     log.warn("No orders found for locationId: {}", locationId);
     return null;
+  }
+
+  public List<AllOrdersCountPerStoreDTO> getAllOrdersCount() {
+    BiFunction<OrderCountPerStoreDTO, OrderType, AllOrdersCountPerStoreDTO> mapper =
+        (orderCountPerStoreDTO, orderType) ->
+            new AllOrdersCountPerStoreDTO(
+                orderCountPerStoreDTO.locationId(), orderCountPerStoreDTO.orderCount(), orderType);
+
+    var generalOrdersCount =
+        getOrdersCount(GENERAL_ORDERS).stream()
+            .map(orderCountPerStoreDTO -> mapper.apply(orderCountPerStoreDTO, OrderType.GENERAL))
+            .toList();
+
+    var restaurantOrdersCount =
+        getOrdersCount(RESTAURANT_ORDERS).stream()
+            .map(orderCountPerStoreDTO -> mapper.apply(orderCountPerStoreDTO, OrderType.RESTAURANT))
+            .toList();
+
+    return Stream.of(generalOrdersCount, restaurantOrdersCount)
+        .flatMap(Collection::stream)
+        .toList();
   }
 }
