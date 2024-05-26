@@ -34,4 +34,9 @@ public class OrderStoreService {
     return Objects.requireNonNull(streamsBuilderFactoryBean.getKafkaStreams())
         .store(StoreQueryParameters.fromNameAndType(storeName, QueryableStoreTypes.windowStore()));
   }
+
+  public ReadOnlyWindowStore<String, TotalRevenue> ordersWindowsRevenueStore(String storeName) {
+    return Objects.requireNonNull(streamsBuilderFactoryBean.getKafkaStreams())
+            .store(StoreQueryParameters.fromNameAndType(storeName, QueryableStoreTypes.windowStore()));
+  }
 }

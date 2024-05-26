@@ -5,6 +5,8 @@ import static com.learnkafkastreams.topology.OrdersTopology.*;
 
 import com.learnkafkastreams.domain.OrderType;
 import com.learnkafkastreams.domain.OrdersCountPerStoreByWindowsDTO;
+import com.learnkafkastreams.domain.OrdersRevenuePerStoreByWindowsDTO;
+import com.learnkafkastreams.domain.TotalRevenue;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -96,5 +98,33 @@ public class OrdersWindowService {
     return Stream.of(generalOrdersCountByWindowsDTO, restaurantOrdersCountByWindowsDTO)
         .flatMap(Collection::stream)
         .toList();
+  }
+
+  public List<OrdersRevenuePerStoreByWindowsDTO> getOrdersRevenueWindowsByType(String orderType) {
+    var revenueWindowsStore = getRevenueWindowsStore(orderType);
+    var orderTypeEnum = mapOrderType(orderType);
+    var revenueWindowsIterator = revenueWindowsStore.all();
+
+    var spliterator = Spliterators.spliteratorUnknownSize(revenueWindowsIterator, 0);
+    return StreamSupport.stream(spliterator, false)
+            .map(
+                    keyValue ->
+                            new OrdersRevenuePerStoreByWindowsDTO(
+                                    keyValue.key.key(),
+                                    keyValue.value,
+                                    orderTypeEnum,
+                                    LocalDateTime.ofInstant(keyValue.key.window().startTime(), ZoneId.of("GMT")),
+                                    LocalDateTime.ofInstant(keyValue.key.window().endTime(), ZoneId.of("GMT"))))
+            .toList();
+  }
+
+  private ReadOnlyWindowStore<String, TotalRevenue> getRevenueWindowsStore(String orderType) {
+    return switch (orderType) {
+      case GENERAL_ORDERS ->
+              orderStoreService.ordersWindowsRevenueStore(GENERAL_ORDERS_REVENUE_WINDOWS);
+      case RESTAURANT_ORDERS ->
+              orderStoreService.ordersWindowsRevenueStore(RESTAURANT_ORDERS_REVENUE_WINDOWS);
+      default -> throw new IllegalStateException("Not a valid order type");
+    };
   }
 }
