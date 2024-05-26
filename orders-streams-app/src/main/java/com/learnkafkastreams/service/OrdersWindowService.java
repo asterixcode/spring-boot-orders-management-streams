@@ -78,7 +78,10 @@ public class OrdersWindowService {
     var toTimeInstant = toTime.toInstant(ZoneOffset.of("UTC"));
 
     var generalOrdersCountByWindows =
-        getCountWindowsStore(GENERAL_ORDERS).fetchAll(fromTimeInstant, toTimeInstant);
+        getCountWindowsStore(GENERAL_ORDERS)
+                // .fetchAll(fromTimeInstant, toTimeInstant)
+                .backwardFetchAll(fromTimeInstant, toTimeInstant)
+                ;
 
 
     var generalOrdersCountByWindowsDTO =
