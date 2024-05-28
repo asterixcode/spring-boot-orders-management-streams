@@ -63,10 +63,7 @@ class OrdersTopologyIntegrationTest {
   void ordersCount() {
     // Given
     publishOrders();
-    // When
-
     // Then
-    // assert orderService.getOrdersCount(GENERAL_ORDERS).size() == 1;
     Awaitility.await().atMost(Duration.ofSeconds(10))
             .pollDelay(Duration.ofSeconds(1))
             .ignoreExceptions()
@@ -81,7 +78,6 @@ class OrdersTopologyIntegrationTest {
     // Given
     publishOrders();
     // Then
-    // assert orderService.getOrdersCount(GENERAL_ORDERS).size() == 1;
     Awaitility.await().atMost(Duration.ofSeconds(10))
             .pollDelay(Duration.ofSeconds(1))
             .ignoreExceptions()
@@ -98,6 +94,32 @@ class OrdersTopologyIntegrationTest {
     var restaurantOrdersRevenue = orderService.getRevenueByOrderType(RESTAURANT_ORDERS);
     assertEquals(new BigDecimal("15.00"), restaurantOrdersRevenue.getFirst().totalRevenue().runningRevenue());
   }
+
+  @Test
+  void ordersRevenue_multipleOrders() {
+    // Given
+    publishOrders();
+    publishOrders();
+    // Then
+    Awaitility.await().atMost(Duration.ofSeconds(60))
+            .pollDelay(Duration.ofSeconds(1))
+            .ignoreExceptions()
+            .until(() -> orderService.getOrdersCount(GENERAL_ORDERS).size(), equalTo(1));
+
+    Awaitility.await().atMost(Duration.ofSeconds(60))
+            .pollDelay(Duration.ofSeconds(1))
+            .ignoreExceptions()
+            .until(() -> orderService.getOrdersCount(RESTAURANT_ORDERS).size(), equalTo(1));
+
+    var generalOrdersRevenue = orderService.getRevenueByOrderType(GENERAL_ORDERS);
+    assertEquals(new BigDecimal("54.00"), generalOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+
+    var restaurantOrdersRevenue = orderService.getRevenueByOrderType(RESTAURANT_ORDERS);
+    assertEquals(new BigDecimal("30.00"), restaurantOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+  }
+
+
+
 
   private void publishOrders() {
     orders()
