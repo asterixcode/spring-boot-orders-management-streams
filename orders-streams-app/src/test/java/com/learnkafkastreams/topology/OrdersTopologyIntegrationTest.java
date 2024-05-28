@@ -10,6 +10,7 @@ import com.learnkafkastreams.domain.Order;
 import com.learnkafkastreams.domain.OrderLineItem;
 import com.learnkafkastreams.domain.OrderType;
 import com.learnkafkastreams.service.OrderService;
+import com.learnkafkastreams.service.OrdersWindowService;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,18 +41,14 @@ import org.springframework.test.context.TestPropertySource;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class OrdersTopologyIntegrationTest {
 
-  @Autowired
-  KafkaTemplate<String, String> kafkaTemplate;
-  @Autowired
-  StreamsBuilderFactoryBean streamsBuilderFactoryBean;
-  @Autowired
-  ObjectMapper objectMapper;
-  @Autowired
-  OrderService orderService;
+  @Autowired KafkaTemplate<String, String> kafkaTemplate;
+  @Autowired StreamsBuilderFactoryBean streamsBuilderFactoryBean;
+  @Autowired ObjectMapper objectMapper;
+  @Autowired OrderService orderService;
+  @Autowired OrdersWindowService ordersWindowService;
 
   @BeforeEach
-  void setup() {
-  }
+  void setup() {}
 
   @AfterEach
   void destroy() {
@@ -64,10 +61,11 @@ class OrdersTopologyIntegrationTest {
     // Given
     publishOrders();
     // Then
-    Awaitility.await().atMost(Duration.ofSeconds(10))
-            .pollDelay(Duration.ofSeconds(1))
-            .ignoreExceptions()
-            .until(() -> orderService.getOrdersCount(GENERAL_ORDERS).size(), equalTo(1));
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(10))
+        .pollDelay(Duration.ofSeconds(1))
+        .ignoreExceptions()
+        .until(() -> orderService.getOrdersCount(GENERAL_ORDERS).size(), equalTo(1));
 
     var generalOrdersCount = orderService.getOrdersCount(GENERAL_ORDERS);
     assertEquals(1, generalOrdersCount.getFirst().orderCount());
@@ -78,21 +76,26 @@ class OrdersTopologyIntegrationTest {
     // Given
     publishOrders();
     // Then
-    Awaitility.await().atMost(Duration.ofSeconds(10))
-            .pollDelay(Duration.ofSeconds(1))
-            .ignoreExceptions()
-            .until(() -> orderService.getOrdersCount(GENERAL_ORDERS).size(), equalTo(1));
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(10))
+        .pollDelay(Duration.ofSeconds(1))
+        .ignoreExceptions()
+        .until(() -> orderService.getOrdersCount(GENERAL_ORDERS).size(), equalTo(1));
 
-    Awaitility.await().atMost(Duration.ofSeconds(10))
-            .pollDelay(Duration.ofSeconds(1))
-            .ignoreExceptions()
-            .until(() -> orderService.getOrdersCount(RESTAURANT_ORDERS).size(), equalTo(1));
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(10))
+        .pollDelay(Duration.ofSeconds(1))
+        .ignoreExceptions()
+        .until(() -> orderService.getOrdersCount(RESTAURANT_ORDERS).size(), equalTo(1));
 
     var generalOrdersRevenue = orderService.getRevenueByOrderType(GENERAL_ORDERS);
-    assertEquals(new BigDecimal("27.00"), generalOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+    assertEquals(
+        new BigDecimal("27.00"), generalOrdersRevenue.getFirst().totalRevenue().runningRevenue());
 
     var restaurantOrdersRevenue = orderService.getRevenueByOrderType(RESTAURANT_ORDERS);
-    assertEquals(new BigDecimal("15.00"), restaurantOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+    assertEquals(
+        new BigDecimal("15.00"),
+        restaurantOrdersRevenue.getFirst().totalRevenue().runningRevenue());
   }
 
   @Test
@@ -101,25 +104,61 @@ class OrdersTopologyIntegrationTest {
     publishOrders();
     publishOrders();
     // Then
-    Awaitility.await().atMost(Duration.ofSeconds(60))
-            .pollDelay(Duration.ofSeconds(1))
-            .ignoreExceptions()
-            .until(() -> orderService.getOrdersCount(GENERAL_ORDERS).size(), equalTo(1));
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(60))
+        .pollDelay(Duration.ofSeconds(1))
+        .ignoreExceptions()
+        .until(() -> orderService.getOrdersCount(GENERAL_ORDERS).size(), equalTo(1));
 
-    Awaitility.await().atMost(Duration.ofSeconds(60))
-            .pollDelay(Duration.ofSeconds(1))
-            .ignoreExceptions()
-            .until(() -> orderService.getOrdersCount(RESTAURANT_ORDERS).size(), equalTo(1));
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(60))
+        .pollDelay(Duration.ofSeconds(1))
+        .ignoreExceptions()
+        .until(() -> orderService.getOrdersCount(RESTAURANT_ORDERS).size(), equalTo(1));
 
     var generalOrdersRevenue = orderService.getRevenueByOrderType(GENERAL_ORDERS);
-    assertEquals(new BigDecimal("54.00"), generalOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+    assertEquals(
+        new BigDecimal("54.00"), generalOrdersRevenue.getFirst().totalRevenue().runningRevenue());
 
     var restaurantOrdersRevenue = orderService.getRevenueByOrderType(RESTAURANT_ORDERS);
-    assertEquals(new BigDecimal("30.00"), restaurantOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+    assertEquals(
+        new BigDecimal("30.00"),
+        restaurantOrdersRevenue.getFirst().totalRevenue().runningRevenue());
   }
 
+  @Test
+  void ordersRevenue_multipleOrdersByWindows() {
+    // Given
+    publishOrders();
+    publishOrders();
+    // Then
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(60))
+        .pollDelay(Duration.ofSeconds(1))
+        .ignoreExceptions()
+        .until(() -> ordersWindowService.getOrdersRevenueWindowsByType(GENERAL_ORDERS).size(), equalTo(1));
 
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(60))
+        .pollDelay(Duration.ofSeconds(1))
+        .ignoreExceptions()
+        .until(() -> ordersWindowService.getOrdersRevenueWindowsByType(RESTAURANT_ORDERS).size(), equalTo(1));
 
+    var generalOrdersRevenue = ordersWindowService.getOrdersRevenueWindowsByType(GENERAL_ORDERS);
+    assertEquals(
+        new BigDecimal("54.00"), generalOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+    System.out.println("generalOrdersRevenue = " + generalOrdersRevenue);
+    var expectedStartTime = LocalDateTime.parse("2023-02-22T03:25:00"); // 2023-02-21T21:25:01, but LocalTime is CEST
+    var expectedSEndTime = LocalDateTime.parse("2023-02-22T03:25:15"); // 2023-02-21T21:25:01, but LocalTime is CEST
+
+    assert generalOrdersRevenue.getFirst().startWindow().isEqual(expectedStartTime);
+    assert generalOrdersRevenue.getFirst().endWindow().isEqual(expectedSEndTime);
+
+    var restaurantOrdersRevenue = orderService.getRevenueByOrderType(RESTAURANT_ORDERS);
+    assertEquals(
+        new BigDecimal("30.00"),
+        restaurantOrdersRevenue.getFirst().totalRevenue().runningRevenue());
+  }
 
   private void publishOrders() {
     orders()
