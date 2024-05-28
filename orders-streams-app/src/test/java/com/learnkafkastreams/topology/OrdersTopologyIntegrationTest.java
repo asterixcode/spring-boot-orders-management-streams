@@ -164,7 +164,7 @@ class OrdersTopologyIntegrationTest {
     orders()
         .forEach(
             order -> {
-              String orderJSON = null;
+              String orderJSON;
               try {
                 orderJSON = objectMapper.writeValueAsString(order.value);
               } catch (JsonProcessingException e) {
