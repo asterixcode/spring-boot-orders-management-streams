@@ -1,0 +1,6 @@
+spring:
+  kafka:
+    streams:
+      application-id: orders-streams-app
+      properties:
+        state.dir: "src/test/resources/kafka-streams"

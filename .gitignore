@@ -34,3 +34,5 @@ gradle-app.setting
 .idea/
 *.iml
 *.iws
+/orders-streams-app/src/test/resources/kafka-streams/*
+/orders-streams-app/out/*
